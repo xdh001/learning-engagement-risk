@@ -4,9 +4,9 @@ English Streamlit interface for a research-use XGBoost model with 13 learner act
 
 ## Deploy on Streamlit Community Cloud
 
-1. Upload the contents of this folder to the root of `a122563765-droid/learning-engagement-risk` on the `main` branch. Keep the two JSON files inside `model/`.
+1. Upload the contents of this folder to the root of `xdh001/learning-engagement-risk` on the `main` branch. Keep the two JSON files inside `model/`.
 2. Sign in to [Streamlit Community Cloud](https://share.streamlit.io/) using GitHub and authorize repository access if requested.
-3. Select repository `a122563765-droid/learning-engagement-risk`, branch `main`, and main file path `app.py`; select **Deploy**.
+3. Select repository `xdh001/learning-engagement-risk`, branch `main`, and main file path `app.py`; select **Deploy**.
 4. Wait for dependencies and the model to load. Enter plausible values for all 13 fields and click **Predict risk**. Confirm the probability, threshold comparison, SHAP chart, and CSV download display.
 5. Copy the actual URL shown by Streamlit after the app is live. Do not cite a proposed URL before testing it.
 
