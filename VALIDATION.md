@@ -29,7 +29,18 @@
 
 独立Streamlit服务实际启动，`/_stcore/health` 返回HTTP 200、正文 `ok`。
 
-## 云端更新
+## 云端部署与浏览器验证（2026-10-16）
 
-2026-10-15连接器写入被403阻断；2026-10-16已通过安全登录取得xdh001网页会话并开始上传独立HistGB代码。
-云端部署、安装日志及预测测试正在执行，当前记录不表示线上已验证成功。
+已更新xdh001/learning-engagement-risk的main分支，入口app.py；保留原网址：https://learning-engagement-risk-xdh001.streamlit.app/。
+
+提交记录：模型与真实阈值06abd9c71e28fd02b610687a88244f98153d72ee；独立应用e1e7b71480988dfb0666fdd785d872658be4f4b1。旧XGBoost模型文件已从当前版本删除，可从Git历史恢复。
+
+云端原Python3.14导致scikit-learn1.4.2安装失败，已在现有应用设置中切换Python3.12，随后正常启动。
+
+浏览器显示实际模型HistGradientBoostingClassifier、18特征、scaled=False，SHA256与上传原件一致。
+
+使用两条标注为TECHNICAL_TEST的技术测试输入（来自填补器统计量，不代表真实学生），网页完成批量预测并成功下载CSV。线上概率与本地原模型最大差值5.551115123125783e-17，为CSV浮点读写精度。
+
+单条模式预测显示27.27%，与本地同一输入一致。只提供student_id和active_days_7d时，网页明确列出缺失的17项特征，未产生预测。
+
+当前仅支持原实验流程预计算特征输入，尚未实现原始事件自动构建及HistGB SHAP解释。

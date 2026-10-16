@@ -40,7 +40,7 @@ Windows可使用 `.venv\Scripts\python -m streamlit run app.py`。
 
 ```bash
 .venv/bin/pip install pytest==8.3.5
-.venv/bin/python -m pytest tests -q
+.venv/bin/python -m pytest test_prediction.py -q
 ```
 
 完整结果见 `VALIDATION.md`。真实学生数据不纳入公开仓库或交付包。
@@ -51,4 +51,4 @@ Windows可使用 `.venv\Scripts\python -m streamlit run app.py`。
 
 部署仓库：xdh001/learning-engagement-risk；分支main；入口app.py。
 
-2026-10-16通过xdh001网页会话上传独立HistGB程序，保留原网址。实际云端运行结果以最新部署验证记录为准。
+2026-10-16已通过xdh001网页会话提交独立HistGB程序，保留原网址。现有应用Python已调整为3.12；线上单条与批量预测、CSV下载及缺失输入保护均已实测通过。详见VALIDATION.md。
