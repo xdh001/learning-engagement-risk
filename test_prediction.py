@@ -32,7 +32,7 @@ def test_direct_model_batch_and_column_order(frame,resources):
     np.testing.assert_array_equal(result.decline_probability_7d,expected)
     assert len(result)==3
     assert result.student_id.tolist()==frame.student_id.tolist()
-    assert result.risk_class.tolist()==np.where(expected>=m['development_oof_youden_threshold'],'高风险','较低风险').tolist()
+    assert result.risk_class.tolist()==np.where(expected>=m['development_oof_youden_threshold'],'High risk','Lower risk').tolist()
 
 def test_csv_roundtrip(frame,resources):
     b,m=resources

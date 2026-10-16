@@ -1,19 +1,18 @@
 import os
 os.environ.setdefault('OMP_NUM_THREADS', '2')
 from html import escape
-from pathlib import Path
 import pandas as pd
 import streamlit as st
 from prediction import load_bundle, predict, read_csv
 
-st.set_page_config(page_title='学习参与度 · 风险预测', page_icon='🌱', layout='wide', initial_sidebar_state='collapsed')
+st.set_page_config(page_title='Learning Engagement · Risk Prediction', page_icon='🌱', layout='wide', initial_sidebar_state='collapsed')
 
 @st.cache_resource
 def resources():
     return load_bundle()
 
 st.markdown('''<style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+
 :root{--primary-color:#0e8174} .stApp{background:#f5f8fb;color:#20334a;font-family:'Noto Sans SC',sans-serif}
 .block-container{max-width:1200px;padding-top:2.3rem;padding-bottom:3rem}
 [data-testid="stSidebar"]{display:none} header[data-testid="stHeader"]{background:transparent}
@@ -31,14 +30,16 @@ st.markdown('''<style>
 .step{font-size:17px;font-weight:650;margin:20px 0 10px;color:#193e52}.hint{font-size:13px;color:#718294;margin:0 0 15px;line-height:1.8}
 .result{background:white;border:1px solid #dae7e9;border-radius:18px;padding:25px 28px;margin:18px 0}.result .prob{font-size:46px;font-weight:700;color:#137e72;line-height:1.4}.badge{display:inline-block;border-radius:30px;padding:5px 13px;font-size:13px;background:#e7f4ef;color:#16715c}.badge.high{background:#fff0e5;color:#b46020}.foot{font-size:12px;color:#8796a5;margin-top:30px;line-height:1.8}
 </style>''', unsafe_allow_html=True)
-st.markdown('''<div class="hero"><div class="eyebrow">LEARNING ENGAGEMENT · 教学支持工具</div><h1>让每一份学习变化，都被及时看见</h1><p>根据学生的学习行为，评估未来 7 天学习参与度下降的可能性，帮助教师及时了解与支持学生。</p><span class="tag">单个学生评估</span><span class="tag">班级批量导入</span><span class="tag">预测结果下载</span></div>''', unsafe_allow_html=True)
+st.markdown('''<div class="hero"><div class="eyebrow">LEARNING ENGAGEMENT · TEACHING SUPPORT</div><h1>Notice changes. Support learning.</h1><p>Estimate the risk of engagement decline over the next 7 days and identify students who may benefit from timely support.</p><span class="tag">Individual assessment</span><span class="tag">Batch CSV upload</span><span class="tag">Downloadable results</span></div>''', unsafe_allow_html=True)
 try:
     bundle, meta = resources()
 except Exception as exc:
-    st.error(f'模型暂时无法加载：{exc}')
+    st.error(f'Unable to load the model: {exc}')
     st.stop()
 features = bundle['predictors']
-dictionary = {d['field']: d for d in meta['feature_dictionary']}
+labels = ['Active days in the past 7 days', 'Active days in the past 14 days', 'Days since last activity', 'Maximum activity gap in the past 28 days', 'Mean activity gap in the past 28 days', 'SD of activity gaps in the past 28 days', 'Active-day density in the past 28 days', 'Active weeks in the past 28 days', 'Weekly active-day ratio: recent 7 vs preceding 21 days', 'Active-day ratio: recent 14 vs preceding 14 days', 'Weekly active-day slope in the past 28 days', 'SD of weekly active days in the past 28 days', 'Longest inactive streak in the past 14 days', 'Long-gap count in the past 28 days', 'Weeks with at least 3 active days in the past 28 days', 'Activity-state transitions in the past 28 days', 'Personal relative activity: recent 7 vs days 29–42', 'Peer-relative activity over the past 7 days (leave-one-out)']
+definitions = ['Number of days with valid learning activity in the preceding 7 days.', 'Number of days with valid learning activity in the preceding 14 days.', 'Days elapsed since the most recent valid learning activity.', 'Maximum interval between learning activities in the preceding 28 days.', 'Mean interval between learning activities in the preceding 28 days.', 'Standard deviation of intervals between learning activities in the preceding 28 days.', 'Active days in the preceding 28 days divided by 28.', 'Number of the four weekly windows with at least one active day.', 'Weekly active days in the recent 7 days divided by the weekly average in the preceding 21 days.', 'Active days in the recent 14 days divided by active days in the preceding 14 days.', 'Slope of active-day counts across four consecutive 7-day windows.', 'Standard deviation of active-day counts across four consecutive 7-day windows.', 'Longest run of consecutive inactive days in the preceding 14 days.', 'Number of gaps exceeding the experiment cutoff; the exact cutoff requires verification against the original feature-generation code.', 'Number of four weekly windows containing at least three active days.', 'Number of transitions between daily active and inactive states in the preceding 28 days.', 'Recent 7-day activity relative to personal activity on days 29–42; the exact normalization formula requires verification.', 'Difference from the mean activity of other learners in the same course at the same prediction time; the learner is excluded from the peer mean.']
+dictionary = {f: {'name': name, 'definition': definition} for f, name, definition in zip(features, labels, definitions)}
 # Explicitly artificial examples, with probabilities always computed by the frozen model.
 DEMO = [3,5,1,6,2.3,1.5534552,10/28,4,1,1,0,1.0897247,4,2,2,9,0,-0.26709062]
 integers = {'active_days_7d','active_days_14d','days_since_last_activity','active_weeks_in_28d','max_inactive_streak_14d','long_gap_count_28d','active_weeks_ge3days_28d','activity_transition_count_28d'}
@@ -60,89 +61,89 @@ def csv_bytes(frame):
 def show_result(result, key):
     if len(result) == 1:
         row = result.iloc[0]
-        high = row.risk_class == '高风险'
-        st.markdown(f'''<div class="result"><div class="hint">学生 {escape(str(row.student_id))} · 本次评估结果</div><span class="badge {'high' if high else ''}">{escape(row.risk_class)}</span><div class="prob">{row.decline_probability_7d:.2%}</div><div>未来 7 天学习参与度下降预测概率</div><p class="hint" style="margin-top:14px;margin-bottom:0">{escape(row.risk_message)}</p></div>''', unsafe_allow_html=True)
+        high = row.risk_class == 'High risk'
+        st.markdown(f'''<div class="result"><div class="hint">Student {escape(str(row.student_id))} · Assessment result</div><span class="badge {'high' if high else ''}">{escape(row.risk_class)}</span><div class="prob">{row.decline_probability_7d:.2%}</div><div>Predicted probability of engagement decline within 7 days</div><p class="hint" style="margin-top:14px;margin-bottom:0">{escape(row.risk_message)}</p></div>''', unsafe_allow_html=True)
     else:
         a,b,c = st.columns(3)
-        a.metric('完成评估', f'{len(result)} 人')
-        b.metric('高风险学生', f'{(result.risk_class=="高风险").sum()} 人')
-        c.metric('平均预测概率', f'{result.decline_probability_7d.mean():.1%}')
-        view = result[['student_id','decline_probability_7d','risk_class','risk_message']].rename(columns={'student_id':'学生编号','decline_probability_7d':'下降预测概率','risk_class':'风险分类','risk_message':'支持建议'})
-        st.dataframe(view, hide_index=True, use_container_width=True, column_config={'下降预测概率':st.column_config.NumberColumn(format='percent')})
-    st.download_button('下载预测结果 CSV', csv_bytes(result), 'engagement_risk_predictions.csv', 'text/csv', key=key, use_container_width=True)
-    st.caption('结局：未来7天活跃日数，相比预测前14天的平均每周活跃日数下降至少50%。风险分类采用开发队列确定的阈值。')
+        a.metric('Students assessed', f'{len(result)} students')
+        b.metric('High-risk students', f'{(result.risk_class=="High risk").sum()} students')
+        c.metric('Mean predicted probability', f'{result.decline_probability_7d.mean():.1%}')
+        view = result[['student_id','decline_probability_7d','risk_class','risk_message']].rename(columns={'student_id':'Student ID','decline_probability_7d':'Decline probability','risk_class':'Risk category','risk_message':'Support recommendation'})
+        st.dataframe(view, hide_index=True, use_container_width=True, column_config={'Decline probability':st.column_config.NumberColumn(format='percent')})
+    st.download_button('Download predictions CSV', csv_bytes(result), 'engagement_risk_predictions.csv', 'text/csv', key=key, use_container_width=True)
+    st.caption('Outcome: at least a 50% decline in active days over the next 7 days relative to the average weekly active days in the preceding 14 days. Risk categories use the development-cohort threshold.')
 
-single, batch, guide = st.tabs(['  单人预测  ','  批量预测  ','  使用说明与字段  '])
+single, batch, guide = st.tabs(['  Individual prediction  ','  Batch prediction  ','  Guide & features  '])
 with single:
     left,right=st.columns([1.55,1],gap='large')
     with left:
-        st.subheader('填写学生学习行为')
-        st.caption('已有18项特征值？填写后即可评估。首次使用可先载入示例。')
+        st.subheader('Enter learning behavior features')
+        st.caption('Enter all 18 precomputed features, or load the demo to try an assessment.')
     with right:
         x,y=st.columns(2)
-        x.button('✨ 载入演示示例', on_click=populate, args=(True,), use_container_width=True)
-        y.button('清空表单', on_click=populate, use_container_width=True)
+        x.button('✨ Load demo', on_click=populate, args=(True,), use_container_width=True)
+        y.button('Clear form', on_click=populate, use_container_width=True)
     if st.session_state.get('demo_loaded'):
-        st.info('当前已载入人工构造的演示数据，仅用于体验操作；点击下方按钮可使用真实模型计算演示概率。用于实际学生前，请清空并填入真实特征。')
+        st.info('Synthetic demo data loaded. Run an assessment to calculate its probability using the actual model. Clear the form before entering real student data.')
     with st.form('student_form',border=True):
-        st.text_input('学生编号', key='student_id', placeholder='例如：S2026001')
-        groups=[('01 近期学习情况',features[:3]+[features[6],features[7],features[14]]),('02 学习节奏与变化',features[3:6]+features[8:14]+[features[15]]),('03 个人历史与同伴比较',features[16:])]
+        st.text_input('Student ID', key='student_id', placeholder='e.g. S2026001')
+        groups=[('01 Recent learning activity',features[:3]+[features[6],features[7],features[14]]),('02 Learning patterns & changes',features[3:6]+features[8:14]+[features[15]]),('03 Personal history & peer comparison',features[16:])]
         for title, group in groups:
             st.markdown(f'<div class="step">{title}</div>',unsafe_allow_html=True)
             if group==features[16:]:
-                st.caption('请使用原特征流程已计算的数值；同伴指标需要同课程、同预测时点的班级数据。')
+                st.caption('Use values generated by the original feature pipeline. Peer comparison requires other learners from the same course at the same prediction time.')
             cols=st.columns(2)
             for i,f in enumerate(group):
                 d=dictionary[f]
                 isint=f in integers
-                cols[i%2].number_input(d['中文名称'], value=None, min_value=None if f in signed else (0 if isint else 0.0), max_value=(int(upper[f]) if isint else float(upper[f])) if f in upper else None, step=1 if isint else 0.01, format='%d' if isint else '%.6f', key='input_'+f, placeholder='请输入', help=d['定义']+'\n\n字段：'+f)
-        st.caption('全部18项均需提供。历史、相对与间隔特征应由原实验特征流程生成，请勿使用估计值填补。')
-        submitted=st.form_submit_button('开始风险评估 →', type='primary',use_container_width=True)
+                cols[i%2].number_input(d['name'], value=None, min_value=None if f in signed else (0 if isint else 0.0), max_value=(int(upper[f]) if isint else float(upper[f])) if f in upper else None, step=1 if isint else 0.01, format='%d' if isint else '%.6f', key='input_'+f, placeholder='Enter a value', help=d['definition']+'\n\nFeature: '+f)
+        st.caption('All 18 features are required. History, relative-activity and gap features must come from the original feature pipeline; do not substitute estimates.')
+        submitted=st.form_submit_button('Assess risk →', type='primary',use_container_width=True)
     if submitted:
         st.session_state.pop('single_result',None)
-        missing=[dictionary[f]['中文名称'] for f in features if st.session_state.get('input_'+f) is None]
+        missing=[dictionary[f]['name'] for f in features if st.session_state.get('input_'+f) is None]
         if missing:
-            st.error('请补齐以下学习行为数据：'+'、'.join(missing))
+            st.error('Please complete these features: '+', '.join(missing))
         else:
             try:
                 frame=pd.DataFrame([{'student_id':st.session_state.student_id,**{f:st.session_state['input_'+f] for f in features}}])
                 st.session_state['single_result']=predict(frame,bundle,meta)
             except ValueError as exc:
-                st.error(f'请检查输入：{exc}')
+                st.error(f'Please check your input: {exc}')
     if 'single_result' in st.session_state:
-        if st.session_state.get('demo_loaded'): st.caption('以下为演示数据的真实模型计算结果，不代表真实学生。')
+        if st.session_state.get('demo_loaded'): st.caption('Result for synthetic demo data, calculated by the actual model; this is not a real student.')
         show_result(st.session_state.single_result,'single_download')
 with batch:
-    st.subheader('一次评估多名学生')
-    st.caption('每行一名学生，包含学生编号与全部18项特征。先下载模板，再按原特征流程填入数据。')
+    st.subheader('Assess multiple students')
+    st.caption('Use one row per student, with student_id and all 18 features. Download the template and populate it using the original feature pipeline.')
     a,b=st.columns(2)
-    a.download_button('↓ 下载空白 CSV 模板', csv_bytes(pd.DataFrame(columns=['student_id']+features)), 'feature_template_18.csv','text/csv',use_container_width=True)
+    a.download_button('↓ Download blank CSV template', csv_bytes(pd.DataFrame(columns=['student_id']+features)), 'feature_template_18.csv','text/csv',use_container_width=True)
     demo_frame=pd.DataFrame([['DEMO_001']+DEMO,['DEMO_002']+DEMO],columns=['student_id']+features)
-    b.download_button('↓ 下载演示 CSV（2人）',csv_bytes(demo_frame),'demo_features_18.csv','text/csv',use_container_width=True)
-    st.caption('演示CSV为人工构造数据，用于测试格式和操作，不代表真实学生。')
-    upload=st.file_uploader('上传学生特征 CSV',type=['csv'],help='UTF-8编码；列名必须与模板一致，学生编号可保留前导零。')
+    b.download_button('↓ Download demo CSV (2 students)',csv_bytes(demo_frame),'demo_features_18.csv','text/csv',use_container_width=True)
+    st.caption('The demo CSV contains synthetic data for testing the format and workflow; it does not represent real students.')
+    upload=st.file_uploader('Upload student features CSV',type=['csv'],help='UTF-8 encoding. Use the template column names. Leading zeros in student IDs are preserved.')
     batch_frame=None
     if upload is not None:
         try:
             batch_frame=read_csv(upload.getvalue())
-            st.caption(f'已读取 {len(batch_frame)} 行 · 下方预览前10行')
+            st.caption(f'{len(batch_frame)} rows loaded · Preview of the first 10 rows')
             st.dataframe(batch_frame.head(10),hide_index=True,use_container_width=True)
         except ValueError as exc: st.error(str(exc))
-    if st.button('开始批量评估 →',type='primary',disabled=batch_frame is None,use_container_width=True):
+    if st.button('Assess batch →',type='primary',disabled=batch_frame is None,use_container_width=True):
         st.session_state.pop('batch_result',None)
         try: st.session_state['batch_result']=(upload.getvalue(),predict(batch_frame,bundle,meta))
-        except ValueError as exc: st.error(f'请检查CSV：{exc}')
+        except ValueError as exc: st.error(f'Please check your CSV: {exc}')
     if upload is not None and 'batch_result' in st.session_state and st.session_state.batch_result[0]==upload.getvalue():
         show_result(st.session_state.batch_result[1],'batch_download')
 with guide:
-    st.subheader('三步完成评估')
-    st.markdown('**1 · 准备数据**　从与原实验一致的特征流程取得18项学习行为指标。\n\n**2 · 选择方式**　单名学生填写中文表单，多名学生上传CSV。\n\n**3 · 查看结果**　查看下降概率、风险分类与支持建议，按需下载结果。')
-    st.markdown('#### 如何理解预测结果')
-    st.write('主要结局：以预测前14天平均每周活跃日数为基线，未来7天活跃日数下降至少50%。较高的预测概率表示更需要及时了解学生情况；建议结合课程安排和学生反馈提供支持。')
-    with st.expander('查看18项字段的名称与定义'):
-        st.dataframe(pd.DataFrame(meta['feature_dictionary']).rename(columns={'field':'CSV字段名'}),hide_index=True,use_container_width=True)
-        st.info('目前支持已计算特征输入。较长间隔的时长阈值、个人历史相对指标的归一化公式仍需与原始生成代码核对；请直接使用同一流程已生成的数值。本页面不从简化输入或单个学生事件推算这些字段。')
-    with st.expander('模型与分类说明'):
-        st.write('使用已完成训练的18变量HistGradientBoosting模型及其保存的缺失值填补器，按模型内变量顺序推理，不重新训练、不更换模型。')
-        st.write(f'分类阈值：{meta["development_oof_youden_threshold"]:.16f}，来自开发队列OOF的Youden阈值。')
-st.markdown('<div class="foot">学习参与度风险预测 · 教学支持与研究用途<br>预测结果供教师了解学习变化、安排沟通与支持时参考。</div>',unsafe_allow_html=True)
+    st.subheader('Three steps to an assessment')
+    st.markdown('**1 · Prepare your data**  Obtain all 18 features using the original experiment pipeline.\n\n**2 · Choose an input method**  Use the form for one student or upload a CSV for a class.\n\n**3 · Review the results**  View probabilities, risk categories and support recommendations, then download the results.')
+    st.markdown('#### Understanding the prediction')
+    st.write('The outcome is a decline of at least 50% in active days during the next 7 days, relative to average weekly active days in the preceding 14 days. Higher probabilities suggest a greater need to review the student’s situation. Consider the course schedule and student feedback when offering support.')
+    with st.expander('View all 18 feature names and definitions'):
+        st.dataframe(pd.DataFrame([{'CSV field name':f,'Feature':dictionary[f]['name'],'Definition':dictionary[f]['definition']} for f in features]),hide_index=True,use_container_width=True)
+        st.info('This application accepts precomputed features. The long-gap cutoff and the normalization formula for personal historical activity still require verification against the original feature-generation code. Use values already generated by that pipeline. These features are not reconstructed from simplified inputs or a single student’s events.')
+    with st.expander('Model & classification details'):
+        st.write('Predictions use the frozen 18-feature HistGradientBoosting model and its saved imputer, with features ordered exactly as saved in the model bundle.')
+        st.write(f'Classification threshold: {meta["development_oof_youden_threshold"]:.16f}, the Youden threshold from out-of-fold predictions in the development cohort.')
+st.markdown('<div class="foot">Learning Engagement Risk Prediction · Teaching support & research<br>Use predictions to inform conversations and learning support.</div>',unsafe_allow_html=True)

@@ -16,67 +16,67 @@ def load_bundle(root=ROOT):
     meta = json.loads((root / 'model/metadata.json').read_text())
     path = root / 'model/HistGB_fullDevelopment.pkl'
     if hashlib.sha256(path.read_bytes()).hexdigest() != meta['model_sha256']:
-        raise ValueError('模型文件校验失败，请恢复已验证的模型。')
+        raise ValueError('Model checksum verification failed. Restore the verified model.')
     b = joblib.load(path)
     if not {'model','imputer','predictors','scaled'} <= b.keys():
-        raise ValueError('模型包缺少必要对象。')
+        raise ValueError('The model bundle is missing required objects.')
     if not isinstance(b['model'], HistGradientBoostingClassifier):
-        raise ValueError('实际模型不是HistGradientBoostingClassifier。')
+        raise ValueError('The loaded model is not a HistGradientBoostingClassifier.')
     f = list(b['predictors'])
     if len(f) != 18 or len(set(f)) != 18 or f != meta['predictors']:
-        raise ValueError('18项特征或顺序与已核对元数据不一致。')
+        raise ValueError('The 18 features or their order do not match the verified metadata.')
     if list(b['imputer'].feature_names_in_) != f or b['model'].n_features_in_ != 18:
-        raise ValueError('模型与填补器的输入特征不一致。')
+        raise ValueError('Model and imputer input features do not match.')
     if b['scaled'] and 'scaler' not in b:
-        raise ValueError('缺少训练时的标准化器。')
+        raise ValueError('The saved training scaler is missing.')
     if list(b['model'].classes_) != [0,1]:
-        raise ValueError('结局类别编码不符合0/1定义。')
+        raise ValueError('Outcome classes must be coded as 0 and 1.')
     return b, meta
 
 def read_csv(data):
     text = data.decode('utf-8-sig')
     columns = next(csv.reader(io.StringIO(text)), [])
     if len(columns) != len(set(columns)):
-        raise ValueError('CSV含重复列名。')
+        raise ValueError('The CSV contains duplicate column names.')
     return pd.read_csv(io.StringIO(text), dtype={'student_id':str}, keep_default_na=True)
 
 def validate(frame, predictors):
     if frame.empty:
-        raise ValueError('请输入至少一名学生。')
+        raise ValueError('Please provide at least one student.')
     if frame.columns.duplicated().any():
-        raise ValueError('输入含重复列名。')
+        raise ValueError('The input contains duplicate column names.')
     absent = [f for f in ['student_id', *predictors] if f not in frame.columns]
     if absent:
-        raise ValueError('缺少必要字段：' + '、'.join(absent))
+        raise ValueError('Missing required fields: ' + ', '.join(absent))
     if frame.student_id.isna().any() or frame.student_id.astype(str).str.strip().eq('').any():
-        raise ValueError('学生编号不能为空。')
+        raise ValueError('Student ID must not be blank.')
     raw = frame.loc[:, predictors]
     numeric = raw.apply(pd.to_numeric, errors='coerce')
     invalid = raw.notna() & numeric.isna()
     if invalid.any().any():
-        raise ValueError('特征须为数值；非数值字段：' + '、'.join(invalid.columns[invalid.any()]))
+        raise ValueError('Features must be numeric. Non-numeric fields: ' + ', '.join(invalid.columns[invalid.any()]))
     if np.isinf(numeric.to_numpy(dtype=float)).any():
-        raise ValueError('特征不能包含无穷大。')
+        raise ValueError('Features must not contain infinity.')
     # Missing inputs cannot substitute for unavailable peer/history feature construction.
     if numeric.isna().any().any():
-        raise ValueError('18项必要特征均须提供。请用原实验流程生成缺失的历史或同伴特征；不得填0替代。')
+        raise ValueError('All 18 features are required. Generate missing history or peer features using the original experiment pipeline; do not substitute zero.')
     limits = {'active_days_7d':7,'active_days_14d':14,'active_day_density_28d':1,
               'active_weeks_in_28d':4,'max_inactive_streak_14d':14,
               'active_weeks_ge3days_28d':4,'activity_transition_count_28d':27}
     signed = {'weekly_active_slope_28d','B_self_relative_7d_vs_29to42d','C_peer_relative_7d_LOO'}
     for f in predictors:
         if f not in signed and (numeric[f]<0).any():
-            raise ValueError(f+'不能为负数。')
+            raise ValueError(f+' must not be negative.')
         if f in limits and (numeric[f]>limits[f]).any():
-            raise ValueError(f+'超过允许范围。')
+            raise ValueError(f+' exceeds its allowed range.')
     counts = ['active_days_7d','active_days_14d','days_since_last_activity','active_weeks_in_28d',
               'max_inactive_streak_14d','long_gap_count_28d','active_weeks_ge3days_28d','activity_transition_count_28d']
     if any((numeric[f] % 1 != 0).any() for f in counts):
-        raise ValueError('日数、周数和次数须为整数。')
+        raise ValueError('Day, week and event counts must be integers.')
     if (numeric.active_days_7d > numeric.active_days_14d).any():
-        raise ValueError('近7天活跃日数不能超过近14天。')
+        raise ValueError('Active days in the past 7 days cannot exceed those in the past 14 days.')
     if (numeric.active_weeks_ge3days_28d > numeric.active_weeks_in_28d).any():
-        raise ValueError('每周至少活跃3天的周数不能超过活跃周数。')
+        raise ValueError('Weeks with at least 3 active days cannot exceed active weeks.')
     return numeric
 
 def predict(frame, bundle, metadata):
@@ -86,17 +86,17 @@ def predict(frame, bundle, metadata):
         transformed = bundle['scaler'].transform(transformed)
     p = bundle['model'].predict_proba(transformed)[:,1]
     if not np.isfinite(p).all() or ((p<0)|(p>1)).any():
-        raise ValueError('模型返回无效概率。')
+        raise ValueError('The model returned an invalid probability.')
     threshold = metadata['development_oof_youden_threshold']
     if not isinstance(threshold,(int,float)) or not 0 < threshold < 1:
-        raise ValueError('缺少经核对的开发队列OOF阈值。')
+        raise ValueError('The verified development-cohort OOF threshold is missing.')
     out = frame[['student_id']].copy()
     for col in ['domain_id','landmark_day']:
         if col in frame: out[col] = frame[col].values
     out['decline_probability_7d'] = p
-    out['risk_class'] = np.where(p >= threshold, '高风险','较低风险')
+    out['risk_class'] = np.where(p >= threshold, 'High risk','Lower risk')
     out['risk_message'] = np.where(p >= threshold,
-        '建议教师结合课程安排核查近期学习情况，提供学习支持。',
-        '建议继续观察学习变化，保持常规学习支持。')
+        'Review recent learning activity alongside the course schedule and offer timely learning support.',
+        'Continue monitoring learning activity and maintain routine support.')
     out['classification_threshold'] = threshold
     return out
