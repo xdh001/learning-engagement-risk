@@ -58,14 +58,20 @@ def test_invalid_inputs(frame,resources,kind):
 def test_duplicate_csv():
     with pytest.raises(ValueError):read_csv(b'student_id,a,a\nx,1,2\n')
 
-def test_app_start_and_single_prediction(frame):
+def test_app_empty_and_demo_prediction():
     from streamlit.testing.v1 import AppTest
     at=AppTest.from_file(str(Path(__file__).resolve().parents[0]/'app.py'),default_timeout=30).run()
     assert not at.exception
-    at.radio[0].set_value('单个学生完整特征').run()
-    at.text_area[0].set_value(frame.iloc[:1].to_csv(index=False)).run()
-    at.checkbox[0].check().run()
+    at.button[2].click().run()
+    assert at.error
+    assert 'single_result' not in at.session_state
     at.button[0].click().run()
+    assert at.text_input[0].value == 'DEMO_001'
+    at.button[2].click().run()
     assert not at.exception
-    assert len(at.metric)==1
     assert not at.error
+    assert len(at.session_state['single_result']) == 1
+    at.button[1].click().run()
+    assert at.text_input[0].value == ''
+    assert all(x.value is None for x in at.number_input)
+    assert 'single_result' not in at.session_state
