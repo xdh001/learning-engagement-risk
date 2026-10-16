@@ -1,10 +1,9 @@
 {
-  "features": [
+  "model": "HistGradientBoostingClassifier",
+  "predictors": [
     "active_days_7d",
     "active_days_14d",
-    "active_days_total_to_date",
     "days_since_last_activity",
-    "days_since_first_activity",
     "max_inactivity_gap_28d",
     "mean_activity_gap_28d",
     "sd_activity_gap_28d",
@@ -12,45 +11,149 @@
     "active_weeks_in_28d",
     "wp_active_day_ratio_7v21",
     "wp_active_day_ratio_14v14",
-    "wp_active_day_diff_7v21"
+    "weekly_active_slope_28d",
+    "weekly_active_sd_28d",
+    "max_inactive_streak_14d",
+    "long_gap_count_28d",
+    "active_weeks_ge3days_28d",
+    "activity_transition_count_28d",
+    "B_self_relative_7d_vs_29to42d",
+    "C_peer_relative_7d_LOO"
   ],
-  "feature_labels_zh": {
-    "active_days_7d": "预测前7天活跃学习日数",
-    "active_days_14d": "预测前14天活跃学习日数",
-    "active_days_total_to_date": "截至预测时点累计活跃学习日数",
-    "days_since_last_activity": "距最近一次学习活动时间（天）",
-    "days_since_first_activity": "自首次学习活动至预测时点的时间跨度（天）",
-    "max_inactivity_gap_28d": "近28天最大学习活动间隔（天）",
-    "mean_activity_gap_28d": "近28天平均学习活动间隔（天）",
-    "sd_activity_gap_28d": "近28天学习活动间隔标准差",
-    "active_day_density_28d": "近28天活跃学习日密度",
-    "active_weeks_in_28d": "近28天活跃周数",
-    "wp_active_day_ratio_7v21": "最近7天/此前21天平均每周活跃日比值",
-    "wp_active_day_ratio_14v14": "最近14天/此前14天活跃日比值",
-    "wp_active_day_diff_7v21": "最近7天−此前21天平均每周活跃日差值"
-  },
-  "imputer_medians": {
-    "active_days_7d": 3.0,
-    "active_days_14d": 5.0,
-    "active_days_total_to_date": 39.0,
-    "days_since_last_activity": 1.0,
-    "days_since_first_activity": 104.0,
-    "max_inactivity_gap_28d": 6.0,
-    "mean_activity_gap_28d": 2.25,
-    "sd_activity_gap_28d": 1.577621275493231,
-    "active_day_density_28d": 0.3928571428571428,
-    "active_weeks_in_28d": 4.0,
-    "wp_active_day_ratio_7v21": 0.9230769230769232,
-    "wp_active_day_ratio_14v14": 1.0,
-    "wp_active_day_diff_7v21": -0.333333333333333
-  },
-  "development_threshold": 0.1676448434591293,
-  "threshold_source": "/root/autodl-tmp/EMCG_E01R_dataset_repair_V5/FINAL_10ML_13COMMON_RESULTS/tables/All_results.xlsx",
-  "development_n": 52611,
-  "development_learners": 13320,
-  "development_events": 9908,
-  "development_prevalence": 0.18832563532341146,
-  "model": "XGBoost",
-  "outcome": "未来7天学习参与度下降",
-  "note": "Final 13-feature XGBoost refitted on full Development cohort. Threshold is the Development OOF Youden cut-point and is for reference only."
+  "scaled": false,
+  "model_sha256": "580362b81380f9e899ddc3f71ea0bc117fbd21d15eb38ddb3fcb0f8952e0f096",
+  "development_oof_youden_threshold": 0.3094141475972338,
+  "threshold_source": "Supplementary_Table_S4_HistGB_Full18_vs_Reduced13.csv",
+  "threshold_provenance": "SENSITIVITY_HistGB_FULL18_REDUCED13_FINAL.zip; Development/Full18; V1 score protocol; metrics match requested final experiment",
+  "training_sklearn_version": "1.4.2",
+  "tested_python_version": "3.12",
+  "outcome": "Future 7-day active days decline >=50% versus half the prior 14-day active days",
+  "feature_dictionary": [
+    {
+      "field": "active_days_7d",
+      "中文名称": "预测前7天活跃学习日数",
+      "时间窗": "近7天",
+      "定义": "近7天发生有效学习活动的自然日数",
+      "类型": "整数/计数"
+    },
+    {
+      "field": "active_days_14d",
+      "中文名称": "预测前14天活跃学习日数",
+      "时间窗": "近14天",
+      "定义": "近14天发生有效学习活动的自然日数",
+      "类型": "整数/计数"
+    },
+    {
+      "field": "days_since_last_activity",
+      "中文名称": "距最近一次学习活动时间（天）",
+      "时间窗": "截至预测时点",
+      "定义": "距最后一次有效学习活动的天数",
+      "类型": "整数/天"
+    },
+    {
+      "field": "max_inactivity_gap_28d",
+      "中文名称": "近28天最大学习活动间隔（天）",
+      "时间窗": "近28天",
+      "定义": "学习活动间隔的最大值",
+      "类型": "连续/天"
+    },
+    {
+      "field": "mean_activity_gap_28d",
+      "中文名称": "近28天平均学习活动间隔（天）",
+      "时间窗": "近28天",
+      "定义": "学习活动间隔的平均值",
+      "类型": "连续/天"
+    },
+    {
+      "field": "sd_activity_gap_28d",
+      "中文名称": "近28天学习活动间隔标准差（天）",
+      "时间窗": "近28天",
+      "定义": "学习活动间隔的标准差",
+      "类型": "连续/天"
+    },
+    {
+      "field": "active_day_density_28d",
+      "中文名称": "近28天活跃学习日密度",
+      "时间窗": "近28天",
+      "定义": "近28天活跃学习日数÷28",
+      "类型": "连续/比例"
+    },
+    {
+      "field": "active_weeks_in_28d",
+      "中文名称": "近28天活跃周数",
+      "时间窗": "近28天",
+      "定义": "至少存在1个活跃学习日的周数",
+      "类型": "整数/周"
+    },
+    {
+      "field": "wp_active_day_ratio_7v21",
+      "中文名称": "近7天与此前21天周均活跃日数比值",
+      "时间窗": "近7天和此前21天",
+      "定义": "近7天周均活跃日数÷此前21天周均活跃日数",
+      "类型": "连续/比值"
+    },
+    {
+      "field": "wp_active_day_ratio_14v14",
+      "中文名称": "近14天与此前14天活跃日数比值",
+      "时间窗": "近14天和此前14天",
+      "定义": "近14天活跃学习日数÷此前14天活跃学习日数",
+      "类型": "连续/比值"
+    },
+    {
+      "field": "weekly_active_slope_28d",
+      "中文名称": "近28天周活跃日数变化斜率",
+      "时间窗": "近28天",
+      "定义": "4个连续7天窗口的活跃日数变化趋势斜率",
+      "类型": "连续"
+    },
+    {
+      "field": "weekly_active_sd_28d",
+      "中文名称": "近28天周活跃日数标准差",
+      "时间窗": "近28天",
+      "定义": "4个连续7天窗口活跃学习日数的标准差",
+      "类型": "连续/天"
+    },
+    {
+      "field": "max_inactive_streak_14d",
+      "中文名称": "近14天最长连续不活跃天数",
+      "时间窗": "近14天",
+      "定义": "连续未发生活动的最长天数",
+      "类型": "整数/天"
+    },
+    {
+      "field": "long_gap_count_28d",
+      "中文名称": "近28天较长学习活动间隔次数",
+      "时间窗": "近28天",
+      "定义": "超过既定时长阈值的学习活动间隔次数（阈值须与原始生成代码核对）",
+      "类型": "整数/次数"
+    },
+    {
+      "field": "active_weeks_ge3days_28d",
+      "中文名称": "近28天每周至少活跃3天的周数",
+      "时间窗": "近28天",
+      "定义": "4个周窗口中活跃学习日数≥3天的周数",
+      "类型": "整数/周"
+    },
+    {
+      "field": "activity_transition_count_28d",
+      "中文名称": "近28天活跃与不活跃状态转换次数",
+      "时间窗": "近28天",
+      "定义": "逐日活跃/不活跃二元状态发生切换的次数",
+      "类型": "整数/次数"
+    },
+    {
+      "field": "B_self_relative_7d_vs_29to42d",
+      "中文名称": "近7天相对第29～42天个人历史活跃水平的变化",
+      "时间窗": "近7天对照第29～42天",
+      "定义": "近7天相较较早期个人历史活跃水平的变化（具体归一化公式待核对）",
+      "类型": "连续/相对变化"
+    },
+    {
+      "field": "C_peer_relative_7d_LOO",
+      "中文名称": "近7天相对同课程同期同伴的活跃水平",
+      "时间窗": "近7天、同课程同预测时点",
+      "定义": "本人近7天活跃水平与同课程同期其他学习者平均水平的差异；留一法不含本人",
+      "类型": "连续/差值"
+    }
+  ]
 }
